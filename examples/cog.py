@@ -11,15 +11,15 @@ class Eval:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='eval')
-    async def _eval(self, ctx, *, body):
+    @commands.command(name='eval', pass_context=True)
+    async def eval_(self, ctx, *, body):
         """Evaluates python code"""
         env = {
             'ctx': ctx,
             'bot': self.bot,
-            'channel': ctx.channel,
-            'author': ctx.author,
-            'guild': ctx.guild,
+            'channel': ctx.message.channel,
+            'author': ctx.message.author,
+            'guild': ctx.message.server,
             'message': ctx.message,
             'source': inspect.getsource
         }
@@ -57,8 +57,8 @@ class Eval:
         try:
             exec(to_compile, env)
         except Exception as e:
-            err = await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
-            return await ctx.message.add_reaction('\u2049')
+            err = await self.bot.say(f'```py\n{e.__class__.__name__}: {e}\n```')
+            return await self.bot.add_reaction(message=ctx.message, emoji='\u2049')
 
         func = env['func']
         try:
@@ -66,38 +66,38 @@ class Eval:
                 ret = await func()
         except Exception as e:
             value = stdout.getvalue()
-            err = await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+            err = await self.bot.say(f'```py\n{value}{traceback.format_exc()}\n```')
         else:
             value = stdout.getvalue()
             if ret is None:
                 if value:
                     try:
                         
-                        out = await ctx.send(f'```py\n{value}\n```')
+                        out = await self.bot.say(f'```py\n{value}\n```')
                     except:
                         paginated_text = paginate(value)
                         for page in paginated_text:
                             if page == paginated_text[-1]:
-                                out = await ctx.send(f'```py\n{page}\n```')
+                                out = await self.bot.say(f'```py\n{page}\n```')
                                 break
-                            await ctx.send(f'```py\n{page}\n```')
+                            await self.bot.say(f'```py\n{page}\n```')
             else:
                 try:
-                    out = await ctx.send(f'```py\n{value}{ret}\n```')
+                    out = await self.bot.say(f'```py\n{value}{ret}\n```')
                 except:
                     paginated_text = paginate(f"{value}{ret}")
                     for page in paginated_text:
                         if page == paginated_text[-1]:
-                            out = await ctx.send(f'```py\n{page}\n```')
+                            out = await self.bot.say(f'```py\n{page}\n```')
                             break
-                        await ctx.send(f'```py\n{page}\n```')
+                        await self.bot.say(f'```py\n{page}\n```')
 
         if out:
-            await ctx.message.add_reaction('\u2705')  # tick
+            await self.bot.add_reaction(message=ctx.message, emoji='\u2705')  # tick
         elif err:
-            await ctx.message.add_reaction('\u2049')  # x
+            await self.bot.add_reaction(message=ctx.message, emoji='\u2049')  # x
         else:
-            await ctx.message.add_reaction('\u2705')
+            await self.bot.add_reaction(message=ctx.message, emoji='\u2705')
 
 def setup(bot):
     bot.add_cog(Eval(bot))
